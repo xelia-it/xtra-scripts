@@ -28,7 +28,7 @@ function x_start_spinner {
 # The $message is currently ignored.
 function x_stop_spinner {
     # $1 : command exit status
-    __spinner "stop" $1 $__sp_pid
+    __spinner "stop" "${1}" $__sp_pid
     unset __sp_pid
 }
 

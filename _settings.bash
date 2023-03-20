@@ -5,7 +5,10 @@
 # ------------------------------------------------------------------------------
 
 # Name of the whole project
-x_xelia_scripts_name="Xelia Scripts"
+x_xtra_scripts_name="Xtra Scripts"
+
+# Subfolder for config file
+x_xtra_script_subfolder="xtra-scripts"
 
 # Folder for user-specific configuration files
 # (analogous to /etc).
@@ -48,11 +51,34 @@ x_read_config() {
         echo "Missing default parameter value"
         exit 1
     fi
-    config_full_name="${x_conf_folder_config}/.xelia_scripts"
+
+    config_full_name=$(x_config_full_name $1)
     if [ ! -r $config_full_name ]; then
         echo $2
     else
         cat ${config_full_name}
-        echo "BOOH"
     fi
+}
+
+x_write_config() {
+    if [ "$1" == "" ]; then
+        echo "Missing parameter name"
+        exit 1
+    fi
+    if [ "$2" == "" ]; then
+        echo "Missing parameter value"
+        exit 1
+    fi
+
+    mkdir -p $(x_config_full_path)
+    config_full_name=$(x_config_full_name $1)
+    echo "${2}" > ${config_full_name}
+}
+
+x_config_full_path() {
+    echo "${x_conf_folder_config}/${x_xtra_script_subfolder}"
+}
+
+x_config_full_name() {
+    echo "${x_conf_folder_config}/${x_xtra_script_subfolder}/${1}"
 }
