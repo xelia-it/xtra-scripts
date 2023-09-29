@@ -8,7 +8,7 @@ Xtra Scripts contains scripts for automate daily tasks.
 It requires:
 * a _bash_ interpreter
 * some external command line tools: _grep_, _sed_, _which_, _sort_, _uniq_
-It's recommended to use it inside a Linux machine. We tested it in Debian 11.
+It's recommended to use it inside a Linux machine. We tested it in Debian 11 and Debian 12.
 
 ## Quick start
 

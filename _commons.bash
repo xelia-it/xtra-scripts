@@ -79,3 +79,14 @@ function x_script_filename() {
 function x_string_remove_pattern() {
     echo "${1//$2}"
 }
+
+# x_ensure_user_is_root
+#
+# Exit with error code 1 if the user is not root (or sudo).
+#
+function x_ensure_user_is_root() {
+    if [ "$EUID" -ne 0 ]; then
+        echo "Please run as root"
+        exit 1
+    fi
+}
