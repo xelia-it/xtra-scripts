@@ -43,6 +43,19 @@ function x_print_error() {
     fi
 }
 
+# x_print_error($message)
+#
+# Like x_print_error print an error message (if any).
+# Also it immediately exit the script with an error code.
+#
+# The error code is $2 parameter.
+# If not provided it defaults to 1.
+#
+function x_fail {
+    x_print_error "$1"
+    exit "${2-1}"
+}
+
 # x_check_user_is_root()
 #
 # Ensure that the script is run by root user.
