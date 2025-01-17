@@ -19,25 +19,20 @@ rails_folder=
 db_username=
 db_password=
 db_name=
-backup_folder=~/backup
-hostname=`hostname`
-timestamp=`date --utc +%Y%m%d%H%M%S`
-db_filename=$timestamp-$hostname-backup-db
-storage_filename=$timestamp-$hostname-backup-storage
+db_backup_filename=
+storage_backup_filename=
 
 usage () {
     echo "Usage:"
-    echo "    $0 [-b <backup folder>]"
+    echo "    $0 -b <backup filename> -s <storage filename>"
     echo "    -r <rails folder>"
     echo "    -d <db name> -u <db username> -p <db password>"
     echo "    [-v] [-h|-?]"
 }
 
-
 print_settings() {
     echo -e "Folders:"
     echo -e "  Rails:    ${color_white}${rails_folder}${color_reset}"
-    echo -e "  Backup:   ${color_white}${backup_folder}${color_reset}"
     echo
 
     echo -e "Database:"
@@ -45,8 +40,8 @@ print_settings() {
     echo
 
     echo -e "Backups:"
-    echo -e "  DB:       ${color_white}${db_filename}.bz2${color_reset}"
-    echo -e "  Storage:  ${color_white}${storage_filename}.bz2${color_reset}"
+    echo -e "  DB:       ${color_white}${db_backup_filename}${color_reset}"
+    echo -e "  Storage:  ${color_white}${storage_backup_filename}${color_reset}"
     echo
 }
 
@@ -57,11 +52,11 @@ check_params() {
     if ! [ -d $rails_folder ]; then
         x_fail "Rails folder do not exists"
     fi
-    if ! [ -d $rails_folder/storage ]; then
-        x_fail "Rails storage folder do not exists"
+    if ! [ -f $db_backup_filename ]; then
+        x_fail "DB backup filename do not exists"
     fi
-    if ! [ -d $backup_folder ]; then
-        x_fail "Backup folder do not exists"
+    if ! [ -f $storage_backup_filename ]; then
+        x_fail "Storage backup filename do not exists"
     fi
     if [ "$db_name" == "" ]; then
         x_fail "DB name cannot be empty"
@@ -74,33 +69,48 @@ check_params() {
     fi
 }
 
-do_backup() {
-    echo "Creating DB backup ..."
+do_restore() {
+    backup_file_type=`file $db_backup_filename`
+    if [[ $? -ne 0 ]]; then
+        x_fail "Failed to retrieve file type"
+    fi
+    echo backup_file_type
+    if [[ $backup_file_type = *"gzip"* ]]; then
+        echo "File $db_backup_filename is compressed with gzip"
+        zcat $db_backup_filename > $db_backup_filename.tmp
+    else
+        if [[ $backup_file_type = *"bz2"* ]]; then
+            echo "File $db_backup_filename is compressed with bz2"
+            bzcat $db_backup_filename > $db_backup_filename.tmp
+        else
+            echo "Assume $1 is a plain text"
+            cp $db_backup_filename  > $db_backup_filename.tmp
+        fi
+    fi
+
+    echo "Restore DB backup ..."
     export PGPASSWORD=$db_password
-    pg_dump -U $db_username -h localhost -d $db_name > $db_filename.sql
-    if [ $? -gt 0 ]; then
-        echo
+    psql -U $db_username -h localhost $db_name < $db_backup_filename.tmp
+    if [ $? -ne 0 ]; then
         x_fail "DB backup failed: aborting"
     fi
-    tar jcf $db_filename.tar.bz2 $db_filename.sql
-    mv $db_filename.tar.bz2 $backup_folder
-    rm $db_filename.sql
+    rm $db_backup_filename.tmp
 
-    echo "Creating storage backup ..."
-    pushd . > /dev/null
-    cd $rails_folder
-    tar jcf $storage_filename.tar.bz2 storage
-    mv $storage_filename.tar.bz2 $backup_folder
-    popd > /dev/null
+    echo "Restore storage backup ..."
+    mkdir -p $rails_folder/storage
+    tar jxf $storage_backup_filename -C $rails_folder #/storage
 }
 
 # ------------------------------------------------------------------------------
 # Main
 
-while getopts "b:r:d:u:p:hv" arg ; do
+while getopts "b:s:r:d:u:p:hv" arg ; do
     case $arg in
         b)
-            backup_folder=${OPTARG}
+            db_backup_filename=${OPTARG}
+            ;;
+        s)
+            storage_backup_filename=${OPTARG}
             ;;
         r)
             rails_folder=${OPTARG}
@@ -112,7 +122,6 @@ while getopts "b:r:d:u:p:hv" arg ; do
             db_username=${OPTARG}
             ;;
         p)
-
             db_password=${OPTARG}
             ;;
         v)
@@ -132,4 +141,4 @@ shift $((OPTIND-1))
 
 print_settings
 check_params
-do_backup
+do_restore
