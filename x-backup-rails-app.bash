@@ -25,7 +25,12 @@ timestamp=`date --utc +%Y%m%d%H%M%S`
 db_filename=$timestamp-$hostname-backup-db
 storage_filename=$timestamp-$hostname-backup-storage
 
-usage () { echo "How to use"; }
+usage () {
+    echo "Usage:"
+    echo "    $0 [-b <backup folder>] [-r <rails folder>]"
+    echo "    [-d <db name>] [-u <db username>] [-p <db password>]"
+    echo "    [-v] [-h|-?]"
+}
 
 
 print_settings() {
@@ -63,6 +68,9 @@ check_params() {
     if [ "$db_username" == "" ]; then
         x_fail "DB username cannot be empty"
     fi
+    if [ "$db_password" == "" ]; then
+        x_fail "DB password cannot be empty"
+    fi
 }
 
 make_backup() {
@@ -83,6 +91,11 @@ make_backup() {
     tar jcf $storage_filename.tar.bz2 storage
     mv $storage_filename.tar.bz2 $backup_folder
     popd > /dev/null
+}
+
+make_storage_backup() {
+    echo "Creating storage backup ..."
+    tar -czf $storage_filename -C $rails_folder/storage .
 }
 
 # ------------------------------------------------------------------------------
@@ -124,3 +137,4 @@ shift $((OPTIND-1))
 print_settings
 check_params
 make_backup
+make_backup_storage
