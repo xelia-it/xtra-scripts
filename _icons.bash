@@ -8,12 +8,6 @@ icon_check_mark='\U2713'
 icon_cross_mark='\U2717'
 icon_heavy_right_pointing_angle='\U2771'
 icon_heavy_left_pointing_angle='\U2770'
-icon_gem='\U1F48E'
-icon_folder_closed='\U1F4C1'
-icon_folder_open='\U1F4C2'
-icon_folder_outline_closed='\U1F5C0'
-icon_folder_outline_open='\U1F5C1'
-
 
 icon_dots_1='\U2809'
 icon_dots_2='\U2818'
