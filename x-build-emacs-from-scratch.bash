@@ -14,15 +14,21 @@ x_print_title "Install emacs from source"
 # ------------------------------------------------------------------------------
 # Settings
 
-set DEV_PACKAGES=xorg-dev libgtk-3-dev \
-  libjansson-dev libgccjit-12-dev \
-  libncurses-dev libxml2-dev libjpeg-dev libpng-dev libgif-dev libtiff-dev \
-  libgnutls28-dev librsvg2-dev
+# For Debian 12
+build_packages=(
+    build-essential autoconf automake texinfo gnutls-bin
+)
+dev_packages=(
+    libgtk-3-dev xorg-dev libncurses-dev
+    libjansson-dev libgccjit-12-dev libgnutls28-dev
+    libxml2-dev libharfbuzz-dev libtree-sitter-dev libwebkit2gtk-4.0-dev
+    librsvg2-dev libpoppler-glib-dev
+    libxpm-dev libjpeg-dev libgif-dev libtiff-dev libpng-dev libgif-dev libtiff-dev
+    libmagickwand-dev libmagickcore-dev
+)
+install_path=/opt/emacs
 
-# TODO: For debian 11
-# sudo apt install build-essential xorg-dev libgtk2.0-dev \
-# libjpeg-dev libgif-dev libtiff-dev libncurses5-dev libjansson-dev libgccjit-10-dev
-
+sudo apt install -y "${dev_packages[@]}"
 # ------------------------------------------------------------------------------
 
 x_ensure_user_is_root
@@ -42,12 +48,41 @@ echo
 
 # For Debian 12
 
-sudo apt install -y build-essential $DEV_PACKAGES
+sudo apt install -y "${build_packages[@]}"
+
 echo
-echo -e "${color_white}${icon_check_mark}${color_reset}: required packages installed"
+echo -e "${color_white}${icon_check_mark}${color_reset}: build packages installed"
 echo
 
-./configure --prefix=/opt/emacs --with-native-compilation --with-mailutils
-make
+sudo apt install -y "${dev_packages[@]}"
+
+echo
+echo -e "${color_white}${icon_check_mark}${color_reset}: dev packages installed"
+echo
+
+./configure --prefix=$install_path \
+            --with-native-compilation --with-tree-sitter  --with-imagemagick \
+            --with-mailutils   --without-pop \
+            CFLAGS="-O2 -march=native -pipe"
+
+echo
+echo -e "${color_white}${icon_check_mark}${color_reset}: configuration done"
+echo
+
+make -j$(nproc) VERBOSE=1
+
+echo
+echo -e "${color_white}${icon_check_mark}${color_reset}: build complete"
+echo
+
 sudo make install
-sudo apt purge -y $DEV_PACKAGES
+
+echo
+echo -e "${color_white}${icon_check_mark}${color_reset}: install complete"
+echo
+
+sudo apt purge -y "${dev_packages[@]}"
+
+echo
+echo -e "${color_white}${icon_check_mark}${color_reset}: cleanup complete"
+echo
