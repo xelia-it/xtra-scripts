@@ -22,4 +22,4 @@ export PATH=$PATH:<your script path>
 
 ## License
 
-The library is licenced under the commercial-friendly MIT license.
+The library is licenced under the commercial-friendly [MIT license](./LICENSE.MIT).

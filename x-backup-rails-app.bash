@@ -25,6 +25,9 @@ timestamp=`date --utc +%Y%m%d%H%M%S`
 db_filename=$timestamp-$hostname-backup-db
 storage_filename=$timestamp-$hostname-backup-storage
 
+# ------------------------------------------------------------------------------
+# Functions
+
 usage () {
     echo "Usage:"
     echo "    $0 [-b <backup folder>]"
@@ -32,7 +35,6 @@ usage () {
     echo "    -d <db name> -u <db username> -p <db password>"
     echo "    [-v] [-h|-?]"
 }
-
 
 print_settings() {
     echo -e "Folders:"
@@ -112,7 +114,6 @@ while getopts "b:r:d:u:p:hv" arg ; do
             db_username=${OPTARG}
             ;;
         p)
-
             db_password=${OPTARG}
             ;;
         v)
