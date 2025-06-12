@@ -29,7 +29,9 @@ dev_packages=(
 install_path=/opt/emacs
 
 sudo apt install -y "${dev_packages[@]}"
+
 # ------------------------------------------------------------------------------
+# Main
 
 x_ensure_user_is_root
 

@@ -10,7 +10,7 @@ source _colors.bash
 source _commons.bash
 source _settings.bash
 
-x_print_title "Backup Rails App"
+x_print_title "Restore Rails App"
 
 # ------------------------------------------------------------------------------
 # Settings
@@ -21,6 +21,9 @@ db_password=
 db_name=
 db_backup_filename=
 storage_backup_filename=
+
+# ------------------------------------------------------------------------------
+# Functions
 
 usage () {
     echo "Usage:"
