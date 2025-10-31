@@ -98,6 +98,9 @@ check_version_to_update() {
 }
 
 calculate_new_tags() {
+    debug_message "Git short version: $color_bright_white$git_short_version$color_reset"
+    debug_message "Is first version?: $color_bright_white$is_first_version$color_reset"
+
     major=`echo $git_short_version | cut -d. -f1`
     minor=`echo $git_short_version | cut -d. -f2`
     patch=`echo $git_short_version | cut -d. -f3`
@@ -107,7 +110,7 @@ calculate_new_tags() {
             if [ $ask_to_update_major == true ]; then
                 new_major=`expr $major + 1`
             else
-                new_major=$major
+                new_major=0
             fi
             new_minor=0
         elif [ $ask_to_update_major == true ]; then

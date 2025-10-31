@@ -28,6 +28,43 @@ dev_packages=(
 )
 install_path=/opt/emacs
 
+
+set DEV_PACKAGES=xorg-dev libgtk-3-dev \
+  libjansson-dev libgccjit-12-dev \
+  libncurses-dev libxml2-dev libjpeg-dev libpng-dev libgif-dev libtiff-dev \
+  libgnutls28-dev librsvg2-dev \
+  build-essential \
+  gcc \
+  g++ \
+    make \
+    autoconf \
+    automake \
+    texinfo \
+    libgtk-3-dev \
+    libxpm-dev \
+    libjpeg-dev \
+    libgif-dev \
+    libtiff-dev \
+    libncurses-dev \
+    libgnutls28-dev \
+    libjansson-dev \
+    libharfbuzz-dev \
+    libtree-sitter-dev \
+    libgccjit-12-dev \
+    libgccjit-12-doc \
+    libgccjit-12-source \
+    libmailutils-dev \
+    libmagickwand-dev \
+    libxml2-dev \
+    libgtk-3-dev \
+    libjson-c-dev \
+    curl \
+    ca-certificates \
+    zlib1g-dev \
+    libncurses5-dev \
+    libncursesw5-dev
+
+
 sudo apt install -y "${dev_packages[@]}"
 
 # ------------------------------------------------------------------------------
@@ -50,7 +87,8 @@ echo
 
 # For Debian 12
 
-sudo apt install -y "${build_packages[@]}"
+#sudo apt install -y "${build_packages[@]}"
+sudo apt install -y $DEV_PACKAGES
 
 echo
 echo -e "${color_white}${icon_check_mark}${color_reset}: build packages installed"
@@ -77,7 +115,12 @@ echo
 echo -e "${color_white}${icon_check_mark}${color_reset}: build complete"
 echo
 
-sudo make install
+#./configure --prefix=/opt/emacs --with-native-compilation --with-mailutils \
+#    CFLAGS="-O3 -march=native -mtune=native" \
+#    CXXFLAGS="-O3 -march=native -mtune=native" \
+#    LDFLAGS="-Wl,-O1"
+#
+#make
 
 echo
 echo -e "${color_white}${icon_check_mark}${color_reset}: install complete"

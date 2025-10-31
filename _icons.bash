@@ -21,3 +21,8 @@ icon_dots_8='\U2827'
 icon_dots_9='\U2807'
 icon_dots_10='\U2803'
 icon_dots_11='\U2801'
+
+icon_arrow_left='\U2190'
+icon_arrow_left_bar='\U27FB'
+icon_arrow_right='\U2192'
+icon_arrow_right_bar='\U27FC'
