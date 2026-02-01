@@ -51,12 +51,18 @@ debug_message() {
 
 get_last_git_version() {
     # Check git version
-    git_version=`git describe --match 'ver[0-9]*' --first-parent --dirty --long | sed -e 's|^ver||' -e 's|-|.|g'`
-    if [ -z $git_version ]; then
+    git_describe=`git describe --match 'ver[0-9]*' --first-parent --dirty --long 2> /dev/null`
+    if ! [ -z $? ]; then
+        debug_message "No previous tag found: create the first tag"
         is_first_version=true
     else
-        is_first_version=false
-        git_short_version="$(cut -d '.' -f 1 <<< "$git_version")"."$(cut -d '.' -f 2 <<< "$git_version")"."$(cut -d '.' -f 3 <<< "$git_version")"
+        git_version=`echo $git_describe | sed -e 's|^ver||' -e 's|-|.|g'`
+        if [ -z $git_version ]; then
+            is_first_version=true
+        else
+            is_first_version=false
+            git_short_version="$(cut -d '.' -f 1 <<< "$git_version")"."$(cut -d '.' -f 2 <<< "$git_version")"."$(cut -d '.' -f 3 <<< "$git_version")"
+        fi
     fi
 
     debug_message "Last Git Version: $color_bright_white$git_version$color_reset"
@@ -98,8 +104,12 @@ calculate_new_tags() {
 
     if [ $add_develop_tag == true ]; then
         if [ $is_first_version == true ]; then
-            new_minor=$minor
-            new_major=$major
+            if [ $ask_to_update_major == true ]; then
+                new_major=`expr $major + 1`
+            else
+                new_major=$major
+            fi
+            new_minor=0
         elif [ $ask_to_update_major == true ]; then
             new_major=`expr $major + 1`
             new_minor=0
@@ -122,7 +132,7 @@ calculate_new_tags() {
 }
 
 create_development_commit_and_tag() {
-    git commit --allow-empty -m "Empty commit to tag $1 development"
+    git commit --allow-empty -m "Empty commit to tag start of $1 development"
     git tag $1 -a -m "Start $1 development"
 }
 
