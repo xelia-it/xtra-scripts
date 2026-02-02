@@ -22,12 +22,12 @@ max_depth=5
 # Functions
 
 usage() {
-    echo "Usage: $(basename $0) [-p <string>] [-c] [-h | -?]"
+    echo "Usage: $(basename $0) [-p <projects root>] [-c] [-h | -?]"
     echo
     echo "Where:"
-    echo "  -p <string>  - defines the project root"
-    echo "  -c           - change dir"
-    echo "  -h | -?      - shows this help screen"
+    echo "  -p <projects root>  - folder containing all the projects"
+    echo "  -c                  - change dir"
+    echo "  -h | -?             - shows this help screen"
 }
 
 change_project_dir() {
