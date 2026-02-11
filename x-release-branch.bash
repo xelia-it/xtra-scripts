@@ -52,7 +52,7 @@ debug_message() {
 get_last_git_version() {
     # Check git version
     git_describe=`git describe --match 'ver[0-9]*' --first-parent --dirty --long 2> /dev/null`
-    if ! [ -z $? ]; then
+    if [ $? -ne 0 ]; then
         debug_message "No previous tag found: create the first tag"
         is_first_version=true
     else
@@ -185,6 +185,7 @@ done
 shift $((OPTIND-1))
 
 get_last_git_version
+exit 0
 check_version_to_update
 calculate_new_tags
 create_branches_and_tags
