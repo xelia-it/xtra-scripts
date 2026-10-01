@@ -1,14 +1,17 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # ------------------------------------------------------------------------------
-# Xelia - Xtra Scripts Utilities
+# Xtra Scripts
 #
-# Backup a Rails App
+# Restore Rails app
 # ------------------------------------------------------------------------------
 
-source _colors.bash
-source _commons.bash
-source _settings.bash
+set -e
+
+SOURCE_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+source "$SOURCE_DIR/_colors.bash"
+source "$SOURCE_DIR/_commons.bash"
+source "$SOURCE_DIR/_settings.bash"
 
 x_print_title "Restore Rails App"
 
@@ -21,19 +24,20 @@ db_password=
 db_name=
 db_backup_filename=
 storage_backup_filename=
+verbose=false
 
 # ------------------------------------------------------------------------------
 # Functions
 
-usage () {
+function usage() {
     echo "Usage:"
-    echo "    $0 -b <backup filename> -s <storage filename>"
+    echo "    $(basename "$0") -b <backup filename> -s <storage filename>"
     echo "    -r <rails folder>"
     echo "    -d <db name> -u <db username> -p <db password>"
-    echo "    [-v] [-h|-?]"
+    echo "    [-v] [-h | -?]"
 }
 
-print_settings() {
+function print_settings() {
     echo -e "Folders:"
     echo -e "  Rails:    ${color_white}${rails_folder}${color_reset}"
     echo
@@ -48,17 +52,17 @@ print_settings() {
     echo
 }
 
-check_params() {
+function check_params() {
     if [ "$rails_folder" == "" ]; then
         x_fail "Rails folder cannot be empty"
     fi
-    if ! [ -d $rails_folder ]; then
+    if ! [ -d "$rails_folder" ]; then
         x_fail "Rails folder do not exists"
     fi
-    if ! [ -f $db_backup_filename ]; then
+    if ! [ -f "$db_backup_filename" ]; then
         x_fail "DB backup filename do not exists"
     fi
-    if ! [ -f $storage_backup_filename ]; then
+    if ! [ -f "$storage_backup_filename" ]; then
         x_fail "Storage backup filename do not exists"
     fi
     if [ "$db_name" == "" ]; then
@@ -72,76 +76,80 @@ check_params() {
     fi
 }
 
-do_restore() {
-    backup_file_type=`file $db_backup_filename`
+function do_restore() {
+    local backup_file_type=`file "$db_backup_filename"`
     if [[ $? -ne 0 ]]; then
         x_fail "Failed to retrieve file type"
     fi
     echo backup_file_type
     if [[ $backup_file_type = *"gzip"* ]]; then
         echo "File $db_backup_filename is compressed with gzip"
-        zcat $db_backup_filename > $db_backup_filename.tmp
+        zcat "$db_backup_filename" > "$db_backup_filename.tmp"
     else
         if [[ $backup_file_type = *"bz2"* ]]; then
             echo "File $db_backup_filename is compressed with bz2"
-            bzcat $db_backup_filename > $db_backup_filename.tmp
+            bzcat "$db_backup_filename" > "$db_backup_filename.tmp"
         else
-            echo "Assume $1 is a plain text"
-            cp $db_backup_filename  > $db_backup_filename.tmp
+            echo "Assume $db_backup_filename is a plain text"
+            cp "$db_backup_filename" "$db_backup_filename.tmp"
         fi
     fi
 
     echo "Restore DB backup ..."
     export PGPASSWORD=$db_password
-    psql -U $db_username -h localhost $db_name < $db_backup_filename.tmp
+    psql -U "$db_username" -h localhost "$db_name" < "$db_backup_filename.tmp"
     if [ $? -ne 0 ]; then
         x_fail "DB backup failed: aborting"
     fi
-    rm $db_backup_filename.tmp
+    rm "$db_backup_filename.tmp"
 
     echo "Restore storage backup ..."
-    mkdir -p $rails_folder/storage
-    tar jxf $storage_backup_filename -C $rails_folder #/storage
+    mkdir -p "$rails_folder/storage"
+    tar jxf "$storage_backup_filename" -C "$rails_folder"
 }
 
 # ------------------------------------------------------------------------------
 # Main
 
-while getopts "b:s:r:d:u:p:hv" arg ; do
-    case $arg in
-        b)
-            db_backup_filename=${OPTARG}
-            ;;
-        s)
-            storage_backup_filename=${OPTARG}
-            ;;
-        r)
-            rails_folder=${OPTARG}
-            ;;
-        d)
-            db_name=${OPTARG}
-            ;;
-        u)
-            db_username=${OPTARG}
-            ;;
-        p)
-            db_password=${OPTARG}
-            ;;
-        v)
-            verbose=true
-            ;;
-        h | ?)
-            usage
-            exit 0
-            ;;
-        *)
-            usage
-            exit 1
-            ;;
-    esac
-done
-shift $((OPTIND-1))
+function main() {
+    while getopts "b:s:r:d:u:p:hv" arg ; do
+        case $arg in
+            b)
+                db_backup_filename=${OPTARG}
+                ;;
+            s)
+                storage_backup_filename=${OPTARG}
+                ;;
+            r)
+                rails_folder=${OPTARG}
+                ;;
+            d)
+                db_name=${OPTARG}
+                ;;
+            u)
+                db_username=${OPTARG}
+                ;;
+            p)
+                db_password=${OPTARG}
+                ;;
+            v)
+                verbose=true
+                ;;
+            h | \?)
+                usage
+                exit 0
+                ;;
+            *)
+                usage
+                exit 1
+                ;;
+        esac
+    done
+    shift $((OPTIND-1))
 
-print_settings
-check_params
-do_restore
+    print_settings
+    check_params
+    do_restore
+}
+
+main "$@"

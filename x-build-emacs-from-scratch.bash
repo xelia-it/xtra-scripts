@@ -1,13 +1,16 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # ------------------------------------------------------------------------------
-# Xelia - Xtra Scripts Utilities
+# Xtra Scripts
 #
-# Build emacs from source
+# Build Emacs from source
 # ------------------------------------------------------------------------------
 
-source _colors.bash
-source _commons.bash
+set -e
+
+SOURCE_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+source "$SOURCE_DIR/_colors.bash"
+source "$SOURCE_DIR/_commons.bash"
 
 x_print_title "Install emacs from source"
 
@@ -28,63 +31,92 @@ dev_packages=(
 )
 install_path=/opt/emacs
 
-sudo apt install -y "${dev_packages[@]}"
+# ------------------------------------------------------------------------------
+# Functions
+
+function usage() {
+    echo "Usage: $(basename "$0") [-h | -?]"
+    echo
+    echo "Where:"
+    echo "  -h | -?      - shows this help screen"
+}
+
+function check_emacs_source() {
+    if ! [ -x ./configure ]; then
+        x_fail "this folder seems not contain Emacs sources"
+    fi
+
+    local num_of_emacs_words=`grep "GNU Emacs" .gitignore | wc -l`
+    if [ $num_of_emacs_words -eq 0 ]; then
+        x_fail "this folder seems not contain Emacs sources"
+    fi
+
+    echo
+    echo -e "${color_white}${icon_check_mark}${color_reset}: it seems Emacs source"
+    echo
+}
+
+function build_emacs() {
+    # For Debian 12
+    sudo apt install -y "${build_packages[@]}"
+
+    echo
+    echo -e "${color_white}${icon_check_mark}${color_reset}: build packages installed"
+    echo
+
+    sudo apt install -y "${dev_packages[@]}"
+
+    echo
+    echo -e "${color_white}${icon_check_mark}${color_reset}: dev packages installed"
+    echo
+
+    ./configure --prefix=$install_path \
+                --with-native-compilation --with-tree-sitter  --with-imagemagick \
+                --with-mailutils   --without-pop \
+                CFLAGS="-O2 -march=native -pipe"
+
+    echo
+    echo -e "${color_white}${icon_check_mark}${color_reset}: configuration done"
+    echo
+
+    make -j$(nproc) VERBOSE=1
+
+    echo
+    echo -e "${color_white}${icon_check_mark}${color_reset}: build complete"
+    echo
+
+    echo
+    echo -e "${color_white}${icon_check_mark}${color_reset}: install complete"
+    echo
+
+    sudo apt purge -y "${dev_packages[@]}"
+
+    echo
+    echo -e "${color_white}${icon_check_mark}${color_reset}: cleanup complete"
+    echo
+}
 
 # ------------------------------------------------------------------------------
 # Main
 
-x_ensure_user_is_root
+function main() {
+    while getopts "h" arg ; do
+        case $arg in
+            h | \?)
+                usage
+                exit 0
+                ;;
+            *)
+                usage
+                exit 1
+                ;;
+        esac
+    done
+    shift $((OPTIND-1))
 
-if ! [ -x ./configure ]; then
-    x_fail "this folder seems not contain Emacs sources"
-fi
+    x_ensure_user_is_root
+    check_emacs_source
+    build_emacs
+}
 
-num_of_emacs_words=`grep "GNU Emacs" .gitignore | wc -l`
-if [ $num_of_emacs_words -eq 0 ]; then
-    x_fail "this folder seems not contain Emacs sources"
-fi
-
-echo
-echo -e "${color_white}${icon_check_mark}${color_reset}: it seems Emacs source"
-echo
-
-# For Debian 12
-
-sudo apt install -y "${build_packages[@]}"
-
-echo
-echo -e "${color_white}${icon_check_mark}${color_reset}: build packages installed"
-echo
-
-sudo apt install -y "${dev_packages[@]}"
-
-echo
-echo -e "${color_white}${icon_check_mark}${color_reset}: dev packages installed"
-echo
-
-./configure --prefix=$install_path \
-            --with-native-compilation --with-tree-sitter  --with-imagemagick \
-            --with-mailutils   --without-pop \
-            CFLAGS="-O2 -march=native -pipe"
-
-echo
-echo -e "${color_white}${icon_check_mark}${color_reset}: configuration done"
-echo
-
-make -j$(nproc) VERBOSE=1
-
-echo
-echo -e "${color_white}${icon_check_mark}${color_reset}: build complete"
-echo
-
-sudo make install
-
-echo
-echo -e "${color_white}${icon_check_mark}${color_reset}: install complete"
-echo
-
-sudo apt purge -y "${dev_packages[@]}"
-
-echo
-echo -e "${color_white}${icon_check_mark}${color_reset}: cleanup complete"
-echo
+main "$@"

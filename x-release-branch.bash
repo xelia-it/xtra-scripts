@@ -1,14 +1,17 @@
 #!/usr/bin/env bash
 
 # ------------------------------------------------------------------------------
-# Xelia - Xtra Scripts Utilities
+# Xtra Scripts
 #
-# Create release branch with related tags
+# Create and tag release branches
 # ------------------------------------------------------------------------------
 
-source _colors.bash
-source _commons.bash
-source _settings.bash
+set -e
+
+SOURCE_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+source "$SOURCE_DIR/_colors.bash"
+source "$SOURCE_DIR/_commons.bash"
+source "$SOURCE_DIR/_settings.bash"
 
 x_print_title "Create release tags"
 
@@ -34,8 +37,8 @@ verbose=false
 # ------------------------------------------------------------------------------
 # Functions
 
-usage() {
-    echo "Usage: $(basename $0) [-M] [-h | -?]"
+function usage() {
+    echo "Usage: $(basename "$0") [-M] [-h | -?]"
     echo
     echo "Where:"
     echo "  -M           - change major version"
@@ -43,21 +46,29 @@ usage() {
     echo "  -h | -?      - shows this help screen"
 }
 
-debug_message() {
-    if [ $verbose == true ]; then
-        echo -e $1
+function debug_message() {
+    if [ "$verbose" == true ]; then
+        echo -e "$1"
     fi
 }
 
-get_last_git_version() {
+function check_clean_working_tree() {
+    # Refuse to run with a dirty working tree or index:
+    # staged changes would end up in the "empty" commits
+    if ! git diff --quiet || ! git diff --cached --quiet; then
+        x_fail "Working tree not clean"
+    fi
+}
+
+function get_last_git_version() {
     # Check git version
-    git_describe=`git describe --match 'ver[0-9]*' --first-parent --dirty --long 2> /dev/null`
-    if ! [ -z $? ]; then
+    local git_describe
+    if ! git_describe=`git describe --match 'ver[0-9]*' --first-parent --dirty --long 2> /dev/null`; then
         debug_message "No previous tag found: create the first tag"
         is_first_version=true
     else
-        git_version=`echo $git_describe | sed -e 's|^ver||' -e 's|-|.|g'`
-        if [ -z $git_version ]; then
+        git_version=`echo "$git_describe" | sed -e 's|^ver||' -e 's|-|.|g'`
+        if [ -z "$git_version" ]; then
             is_first_version=true
         else
             is_first_version=false
@@ -69,25 +80,25 @@ get_last_git_version() {
     debug_message "Last Git Short Version: $color_bright_white$git_short_version$color_reset"
 }
 
-check_version_to_update() {
+function check_version_to_update() {
     # Check current branch
     current_branch=`git rev-parse --abbrev-ref HEAD`
 
     debug_message "Current branch: $color_bright_white$current_branch$color_reset"
 
-    if [ $current_branch == "develop" ]; then
-        if [ $ask_to_update_major == true ]; then
+    if [ "$current_branch" == "develop" ]; then
+        if [ "$ask_to_update_major" == true ]; then
             debug_message "We are on develop and you asked to change major version"
         else
-            if [ $is_first_version == true ]; then
+            if [ "$is_first_version" == true ]; then
                 debug_message "We are on develop but no versions have been added yet"
             else
                 debug_message "We are on develop: change minor version"
             fi
         fi
         add_develop_tag=true
-    elif [[ $current_branch =~ "release" ]]; then
-        if [ $ask_to_update_major == true ]; then
+    elif [[ $current_branch == release/* ]]; then
+        if [ "$ask_to_update_major" == true ]; then
             x_fail "Cannot update major version on release branch"
         fi
         debug_message "We are in a release branch: update patch version"
@@ -97,20 +108,26 @@ check_version_to_update() {
     fi
 }
 
-calculate_new_tags() {
-    major=`echo $git_short_version | cut -d. -f1`
-    minor=`echo $git_short_version | cut -d. -f2`
-    patch=`echo $git_short_version | cut -d. -f3`
+function calculate_new_tags() {
+    debug_message "Git short version: $color_bright_white$git_short_version$color_reset"
+    debug_message "Is first version?: $color_bright_white$is_first_version$color_reset"
 
-    if [ $add_develop_tag == true ]; then
-        if [ $is_first_version == true ]; then
-            if [ $ask_to_update_major == true ]; then
+    major=`echo "$git_short_version" | cut -d. -f1`
+    minor=`echo "$git_short_version" | cut -d. -f2`
+    patch=`echo "$git_short_version" | cut -d. -f3`
+
+    local new_major
+    local new_minor
+
+    if [ "$add_develop_tag" == true ]; then
+        if [ "$is_first_version" == true ]; then
+            if [ "$ask_to_update_major" == true ]; then
                 new_major=`expr $major + 1`
             else
-                new_major=$major
+                new_major=0
             fi
             new_minor=0
-        elif [ $ask_to_update_major == true ]; then
+        elif [ "$ask_to_update_major" == true ]; then
             new_major=`expr $major + 1`
             new_minor=0
         else
@@ -121,7 +138,7 @@ calculate_new_tags() {
     fi
 
     cur_rel_tag="rel$major.$minor.$patch"
-    new_patch=`expr $patch + 1`
+    local new_patch=`expr $patch + 1`
     new_rel_tag="ver$major.$minor.$new_patch"
     new_rel_branch="release/v$major.$minor"
 
@@ -131,57 +148,62 @@ calculate_new_tags() {
     debug_message "New release branch:  $color_white$new_rel_branch$color_reset"
 }
 
-create_development_commit_and_tag() {
+function create_development_commit_and_tag() {
     git commit --allow-empty -m "Empty commit to tag start of $1 development"
-    git tag $1 -a -m "Start $1 development"
+    git tag "$1" -a -m "Start $1 development"
 }
 
-create_release_commit_and_tag() {
+function create_release_commit_and_tag() {
     git commit --allow-empty -m "Empty commit to tag $1 release"
-    git tag $1 -a -m "Release $1"
+    git tag "$1" -a -m "Release $1"
 }
 
-create_branches_and_tags() {
-    if [ $add_develop_tag == true ]; then
+function create_branches_and_tags() {
+    if [ "$add_develop_tag" == true ]; then
         # We are in develop
-        if [ $is_first_version == false ]; then
-            git checkout -b $new_rel_branch
-            create_release_commit_and_tag $cur_rel_tag
-            create_development_commit_and_tag $new_rel_tag
+        if [ "$is_first_version" == false ]; then
+            git checkout -b "$new_rel_branch"
+            create_release_commit_and_tag "$cur_rel_tag"
+            create_development_commit_and_tag "$new_rel_tag"
             git checkout develop
         fi
 
-        create_development_commit_and_tag $new_dev_tag
+        create_development_commit_and_tag "$new_dev_tag"
     else
-        create_release_commit_and_tag $cur_rel_tag
-        create_development_commit_and_tag $new_rel_tag
+        create_release_commit_and_tag "$cur_rel_tag"
+        create_development_commit_and_tag "$new_rel_tag"
     fi
 }
 
 # ------------------------------------------------------------------------------
 # Main
 
-while getopts "hMv" arg ; do
-    case $arg in
-        M)
-            ask_to_update_major=true
-            ;;
-        v)
-            verbose=true
-            ;;
-        h | ?)
-            usage
-            exit 0
-            ;;
-        *)
-            usage
-            exit 1
-            ;;
-    esac
-done
-shift $((OPTIND-1))
+function main() {
+    while getopts "hMv" arg ; do
+        case $arg in
+            M)
+                ask_to_update_major=true
+                ;;
+            v)
+                verbose=true
+                ;;
+            h | \?)
+                usage
+                exit 0
+                ;;
+            *)
+                usage
+                exit 1
+                ;;
+        esac
+    done
+    shift $((OPTIND-1))
 
-get_last_git_version
-check_version_to_update
-calculate_new_tags
-create_branches_and_tags
+    check_clean_working_tree
+    get_last_git_version
+    check_version_to_update
+    calculate_new_tags
+    create_branches_and_tags
+}
+
+main "$@"
