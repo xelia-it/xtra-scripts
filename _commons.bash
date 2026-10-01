@@ -1,11 +1,12 @@
 # ------------------------------------------------------------------------------
-# Xelia - Xtra Scripts Utilities
+# Xtra Scripts
 #
-# Common functions
+# Shared helpers
 # ------------------------------------------------------------------------------
 
-source _colors.bash
-source _icons.bash
+SOURCE_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+source "$SOURCE_DIR/_colors.bash"
+source "$SOURCE_DIR/_icons.bash"
 
 # x_print_title($message)
 #
@@ -26,7 +27,7 @@ function x_print_title() {
 #
 function x_print_subtitle() {
     if [ -n "$1" ]; then
-        echo -e "$color_bright_white $1 $color_reset"
+        echo -e "${color_bright_white}   $1${color_reset}"
         echo
     fi
 }
@@ -45,7 +46,7 @@ function x_print_error() {
 
 # x_print_error($message)
 #
-# Like x_print_error print an error message (if any).
+# Print an error message and exit immediately.
 # Also it immediately exit the script with an error code.
 #
 # The error code is $2 parameter.
@@ -62,7 +63,7 @@ function x_fail {
 #
 function x_check_user_is_root() {
     if [ "$euid" -ne 0 ]; then
-        echo -e "This script must be executed as root."
+        echo -e "This script must run as root."
         exit 1
     fi
 }
@@ -72,7 +73,7 @@ function x_check_user_is_root() {
 # Returns the current script folder.
 #
 function x_script_folder() {
-    local folder="$( cd "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
+    local folder="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
     echo ${folder}
 }
 
@@ -99,7 +100,7 @@ function x_string_remove_pattern() {
 #
 function x_ensure_user_is_root() {
     if [ "$EUID" -ne 0 ]; then
-        echo "Please run as root"
+        echo "Please run as root."
         exit 1
     fi
 }

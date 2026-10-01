@@ -1,9 +1,9 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # ------------------------------------------------------------------------------
-# Xelia - Xtra Scripts Utilities
+# Xtra Scripts
 #
-# Git repository info and maintenance
+# Git maintenance
 # ------------------------------------------------------------------------------
 
 set -e
@@ -25,7 +25,7 @@ clean_untracked="n"
 # ------------------------------------------------------------------------------
 # Functions
 
-usage() {
+function usage() {
     echo "Usage: $(basename $0) [-i | -c] [-p <project>] [-h | -?]"
     echo
     echo "Where:"
@@ -35,82 +35,90 @@ usage() {
     echo "  -h | -?         - shows this help screen"
 }
 
-check_git_repo() {
+function check_git_repo() {
     if ! git rev-parse --git-dir > /dev/null 2>&1; then
         x_fail "Not a Git repo"
         exit 1
     fi
 }
 
-show_repo_info() {
-    echo -e "$color_white$icon_arrow_right$color_reset Current directory: $color_white$(pwd)$color_reset"
+# Print current GIT directory
+function print_current_dir() {
+    echo -e "${color_white}${icon_arrow_right}${color_reset}  Current directory: ${color_white}$(pwd)${color_reset}"
     echo
+}
 
+function show_repo_info() {
     pushd . &> /dev/null
     cd "$project_folder"
     check_git_repo
 
-    echo -e "${color_bright_white}📊 REPOSITORY STATISTICS${color_reset}"
+    x_print_subtitle "Statistics"
+
+    print_current_dir
+
+    echo -e "${color_white}${icon_arrow_right}${color_reset}  Object count:"
     echo
-    echo -e "$color_white$icon_arrow_right$color_reset Object count:"
     git count-objects -vH
     echo
 
+    echo -e -n "${color_white}${icon_arrow_right}${color_reset}  Remote branches: "
+    local remote_count=$(git branch -r | wc -l)
+    echo -e "${color_white}${remote_count}${color_reset}"
+    echo
 
-    echo -e "$color_white$icon_arrow_right$color_reset Local branches:"
-    local_count=$(git branch | wc -l)
-    echo "  Total: $local_count"
+    echo -e -n "${color_white}${icon_arrow_right}${color_reset}  Local branches:"
+    local local_count=$(git branch | wc -l)
+    echo -e "${color_white}${local_count}${color_reset}"
+    echo
     git branch --list
     echo
 
-    echo -e "$color_white$icon_arrow_right$color_reset Remote branches:"
-    remote_count=$(git branch -r | wc -l)
-    echo "  Total: $remote_count"
+    echo -e "${color_white}${icon_arrow_right}${color_reset}  Repository status:"
     echo
-
-    echo -e "$color_white$icon_arrow_right$color_reset Repository status:"
     git status --short
     if [ $? -eq 0 ] && [ -z "$(git status --short)" ]; then
-        echo "  Working tree clean ✓"
+        echo "  Working tree clean"
     fi
     echo
 
-    echo -e "$color_white$icon_arrow_right$color_reset Commits to push:"
+    echo -e -n "${color_white}${icon_arrow_right}${color_reset}  Commits to push: "
     local unpushed=$(git log --oneline @{u}.. 2>/dev/null | wc -l || echo 0)
-    echo "  $unpushed commit(s)"
+    echo -e "${color_white}${unpushed}${color_reset} commit(s)"
     echo
 
     popd &> /dev/null
 }
 
-do_cleanup() {
-    echo -e "$color_white$icon_arrow_right$color_reset Current directory: $color_white$(pwd)$color_reset"
-    echo
-
+function do_cleanup() {
     pushd . &> /dev/null
     cd "$project_folder"
     check_git_repo
 
-    echo -e "${color_bright_white}🧹 CLEANUP AND MAINTENANCE${color_reset}"
-    echo
+    x_print_subtitle "Cleanup and maintenance"
+
+    print_current_dir
 
     # Garbage collection with immediate pruning and max compression
-    echo -e "$color_white$icon_arrow_right$color_reset Garbage collection..."
+    echo -e "${color_white}$icon_arrow_right$color_reset  Garbage collection..."
+    echo
     git gc --prune=now --aggressive
     echo
 
     # Removes invalid remote references
-    echo -e "$color_white$icon_arrow_right$color_reset Cleanup remote references..."
+    echo -e "$color_white$icon_arrow_right$color_reset  Cleanup remote references..."
+    echo
     git remote prune origin
     echo
 
     # Verify repository integrity
-    echo -e "$color_white$icon_arrow_right$color_reset Integrity check..."
+    echo -e "$color_white$icon_arrow_right$color_reset  Integrity check..."
+    echo
     git fsck --full
     echo
 
     # Ask confirmation before removing untracked files
-    echo -e -n "$color_white$icon_arrow_right$color_reset Cleanup untracked files..."
+    echo -e -n "$color_white$icon_arrow_right$color_reset  Cleanup untracked files..."
     if [[ "$clean_untracked" == "y" ]]; then
         echo
         git clean -fd
@@ -120,15 +128,16 @@ do_cleanup() {
     echo
 
     # Delete unreferenced objects
-    echo -e "$color_white$icon_arrow_right$color_reset Clean unreferenced objects..."
+    echo -e "$color_white$icon_arrow_right$color_reset  Clean unreferenced objects..."
     git prune -v
     echo
 
-    echo -e "$color_white$icon_arrow_right$color_reset Final statistics:"
+    echo -e "$color_white$icon_arrow_right$color_reset  Final statistics:"
+    echo
     git count-objects -vH
     echo
 
-    echo -e "$icon_check_mark Complete"
+    echo -e "${color_green}${icon_check_mark}${color_reset}  Complete"
 
     popd &> /dev/null
 }
@@ -136,34 +145,38 @@ do_cleanup() {
 # ------------------------------------------------------------------------------
 # Main
 
-while getopts "hicep:" arg ; do
-    case $arg in
-        i)
-            operation="info"
+function main() {
+    while getopts "hicep:" arg ; do
+        case $arg in
+            i)
+                operation="info"
+                ;;
+            c)
+                operation="cleanup"
+                ;;
+            p)
+                project_folder=${OPTARG}
+                ;;
+            h | \?)
+                usage
+                exit 0
+                ;;
+            *)
+                usage
+                exit 1
+                ;;
+        esac
+    done
+    shift $((OPTIND-1))
+
+    case "$operation" in
+        info)
+            show_repo_info
             ;;
-        c)
-            operation="cleanup"
-            ;;
-        p)
-            project_folder=${OPTARG}
-            ;;
-        h | ?)
-            usage
-            exit 0
-            ;;
-        *)
-            usage
-            exit 1
+        cleanup)
+            do_cleanup
             ;;
     esac
-done
-shift $((OPTIND-1))
+}
 
-case "$operation" in
-    info)
-        show_repo_info
-        ;;
-    cleanup)
-        do_cleanup
-        ;;
-esac
+main "$@"

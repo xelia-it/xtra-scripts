@@ -1,14 +1,12 @@
 # ------------------------------------------------------------------------------
-# Xelia - Xtra Scripts Utilities
+# Xtra Scripts
 #
-# Draw spinner for long jobs
-#
-# Original code from: https://github.com/tlatsas/bash-spinner (MIT License)
-# Author: Tasos Latsas
+# Spinner
 # ------------------------------------------------------------------------------
 
-source _colors.bash
-source _icons.bash
+SOURCE_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+source "$SOURCE_DIR/_colors.bash"
+source "$SOURCE_DIR/_icons.bash"
 
 # start_spinner($message)
 #
@@ -25,7 +23,7 @@ function x_start_spinner {
 # stop_spinner($message)
 #
 # Stop the last spinner.
-# The $message is currently ignored.
+# The current message is ignored.
 function x_stop_spinner {
     # $1 : command exit status
     __spinner "stop" "${1}" $__sp_pid
@@ -112,7 +110,7 @@ function __spinner() {
             # Set cursor as normal (visible)
             tput cnorm
 
-            # inform the user uppon success or failure
+            # Report success or failure to the user
             echo -en "\b"
             if [[ $2 -eq 0 ]]; then
                 echo -e "${color_green}${on_success}${color_reset}"
@@ -121,7 +119,7 @@ function __spinner() {
             fi
             ;;
         *)
-            echo "invalid argument, try {start/stop}"
+            echo "invalid argument; use {start|stop}"
             exit 1
             ;;
     esac
